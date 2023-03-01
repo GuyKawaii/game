@@ -33,6 +33,26 @@ window.addEventListener('load', function () {
 
     class Projectile {
 
+        constructor(game, x, y) {
+            this.game = game;
+            this.x = x;
+            this.y = y;
+            this.width = 10;
+            this.height = 3;
+            this.speed = 3;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            this.x += this.speed;
+            if (this.x > this.game.width * 0.8) this.markedForDeletion = true;
+        }
+
+        draw(context) {
+            context.fillStyle = "yellow";
+            context.fillRect(this.x, this.y, this.width, this.height);
+        }
+
     }
 
     class Particle {
@@ -52,12 +72,18 @@ window.addEventListener('load', function () {
         }
 
         update() {
-            this.y += this.speedY
-
+            //this.y += this.speedY
             if (this.game.keys.includes('ArrowUp')) this.speedY = -this.maxSpeed;
             else if (this.game.keys.includes('ArrowDown')) this.speedY = this.maxSpeed;
             else this.speedY = 0;
             this.y += this.speedY;
+            //handle projectiles
+            this.projectiles.forEach(projectile => {
+                projectile.update();
+            });
+            //.filter() method creates a new array with all elements that pass the test implemented by the providded function
+            //"=> !projectiles" to make it false
+            this.projectiles = this.projectiles.filter(projectile => !projectile.markedForDeletion);
         }
 
         draw(context) {
@@ -78,7 +104,29 @@ window.addEventListener('load', function () {
     }
 
     class Enemy {
+        constructor(game) {
+            this.game = game;
+            this.x = this.game.width;
+            this.speedX = Math.random() * -1.5 - 0.5;
+            this.markedForDeletion = false;
+            this.lives = 5;
+            this.score = this.lives;
 
+        }
+
+        update() {
+            this.x += this.speedX;
+            if (this.x + this.width < 0) this.markedForDeletion = true;
+
+        }
+
+        draw(context) {
+            context.fillStyle = 'red';
+            context.fillRect(this.x, this.y, this.width, this.height);
+            context.fillStyle = 'black';
+            context.font = '20px Helvetica';
+            context.fillText(this.lives, this.x, this.y);
+        }
     }
 
     class Angler1 extends Enemy {
@@ -100,6 +148,28 @@ window.addEventListener('load', function () {
     }
 
     class UI {
+        constructor(game) {
+            this.game = game;
+            this.fontSize = 25;
+            this.fontFamily = 'Helvetica';
+            this.color = 'white';
+        }
+
+        draw(context) {
+            context.save();
+            context.fillStyle = this.color;
+            context.shadowOffsetX = 2;
+            context.shadowOffsetY = 2;
+            context.shadowColor = "black";
+            context.font = this.fontSize + 'px ' + this.fontFamily;
+            // score
+            context.fillText('Score: ' + this.game.score, 20, 40);
+            // ammo
+            for (let i = 0; i < this.game.ammo; i++) {
+                context.fillRect(20 + 5 * i, 50, 3, 20);
+            }
+            context.restore();
+        }
 
     }
 
@@ -186,14 +256,18 @@ window.addEventListener('load', function () {
     let lastTime = 0;
 
     // animation loop
-    function animate() {
+    function animate(timeStamp) {
+        const deltaTime = timeStamp - lastTime;
+        lastTime = timeStamp;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         game.update(deltaTime);
         game.draw(ctx);
         //tells the browser we wish to perform an animation and requests that that
         //browser calls a specified function to update an animation before the next repaint.
+        //this method has a special feature: it automatically passes a timestamp as an argument to the function it calls
+        //in this case the animate() function
         requestAnimationFrame(animate)
     }
 
-    animate()
-})
+    animate(0);
+});
